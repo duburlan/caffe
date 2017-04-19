@@ -50,3 +50,19 @@ docker run -ti caffe:cpu python
 
 Since the `caffe/python` folder is also added to the path, the utility executable scripts defined there can also be used as executables. This includes `draw_net.py`, `classify.py`, and `detect.py`
 
+# Troubleshooting
+
+### Unresolved server addresses
+
+If docker fails to resolve server addresses when building an image make sure the docker daemon uses a proper DNS server address by examining the configuration file:
+```
+cat /etc/default/docker
+```
+Pay attention to the `DOCKER_OPTS` variable. After setting the right address, restart the docker daemon:
+```
+sudo service docker restart
+```
+and check that docker properly sets DNS server address in containers:
+```
+docker run ubuntu cat /etc/resolv.conf
+```
