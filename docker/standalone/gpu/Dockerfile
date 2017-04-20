@@ -19,7 +19,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         protobuf-compiler \
         python-dev \
 	python-pip \
-        python-numpy && \
+        python-numpy \
+	python-scipy \
+	python-skimage && \
     rm -rf /var/lib/apt/lists/*
 
 ENV CAFFE_ROOT=/opt/caffe
