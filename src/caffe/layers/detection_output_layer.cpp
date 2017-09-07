@@ -22,6 +22,7 @@ void DetectionOutputLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   share_location_ = detection_output_param.share_location();
   num_loc_classes_ = share_location_ ? 1 : num_classes_;
   background_label_id_ = detection_output_param.background_label_id();
+  pred_nonbackground_ = detection_output_param.pred_nonbackground();
   code_type_ = detection_output_param.code_type();
   variance_encoded_in_target_ =
       detection_output_param.variance_encoded_in_target();

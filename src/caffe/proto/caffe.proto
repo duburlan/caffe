@@ -1013,6 +1013,8 @@ message DetectionOutputParameter {
   // Background label id. If there is no background class,
   // set it as -1.
   optional int32 background_label_id = 3 [default = 0];
+  // If true, treat background label as non-background class with probability 1 - p(background)
+  optional bool pred_nonbackground = 13 [default = false];
   // Parameters used for non maximum suppression.
   optional NonMaximumSuppressionParameter nms_param = 4;
   // Parameters used for saving detection results.

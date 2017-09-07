@@ -59,12 +59,20 @@ void DetectionOutputLayer<Dtype>::Forward_gpu(
     } else {
       bbox_idx = conf_idx * 4;
     }
+    Dtype cur_conf_data[num_priors_];
     for (int c = 0; c < num_classes_; ++c) {
-      if (c == background_label_id_) {
+      if (c == background_label_id_ && !pred_nonbackground_) {
         // Ignore background class.
         continue;
       }
-      const Dtype* cur_conf_data = conf_cpu_data + conf_idx + c * num_priors_;
+      const Dtype *data_ptr = conf_cpu_data + conf_idx + c * num_priors_;
+      std::copy(data_ptr, data_ptr + num_priors_, cur_conf_data);
+      // if need to predict non-background class, invert background class scores
+      if (c == background_label_id_ && pred_nonbackground_) {
+          for (int ci = 0; ci < num_priors_; ++ci) {
+              cur_conf_data[ci] = 1. - cur_conf_data[ci];
+          }
+      }
       const Dtype* cur_bbox_data = bbox_cpu_data + bbox_idx;
       if (!share_location_) {
         cur_bbox_data += c * num_priors_ * 4;
@@ -78,10 +86,13 @@ void DetectionOutputLayer<Dtype>::Forward_gpu(
       for (map<int, vector<int> >::iterator it = indices.begin();
            it != indices.end(); ++it) {
         int label = it->first;
+        // if need to predict non-background class, invert background class scores
+        const Dtype conf_fix_a = label == background_label_id_ ? -1.f : 1.f;
+        const Dtype conf_fix_b = label == background_label_id_ ? 1.f : 0.;
         const vector<int>& label_indices = it->second;
         for (int j = 0; j < label_indices.size(); ++j) {
           int idx = label_indices[j];
-          float score = conf_cpu_data[conf_idx + label * num_priors_ + idx];
+          Dtype score = conf_fix_a * conf_cpu_data[conf_idx + label * num_priors_ + idx] + conf_fix_b;
           score_index_pairs.push_back(std::make_pair(
                   score, std::make_pair(label, idx)));
         }
@@ -146,6 +157,9 @@ void DetectionOutputLayer<Dtype>::Forward_gpu(
       }
       const Dtype* cur_conf_data =
         conf_cpu_data + conf_idx + label * num_priors_;
+      // if need to predict non-background class, invert background class scores
+      const Dtype conf_fix_a = label == background_label_id_ ? -1.f : 1.f;
+      const Dtype conf_fix_b = label == background_label_id_ ? 1.f : 0.;
       const Dtype* cur_bbox_data = bbox_cpu_data + bbox_idx;
       if (!share_location_) {
         cur_bbox_data += label * num_priors_ * 4;
@@ -154,7 +168,7 @@ void DetectionOutputLayer<Dtype>::Forward_gpu(
         int idx = indices[j];
         top_data[count * 7] = i;
         top_data[count * 7 + 1] = label;
-        top_data[count * 7 + 2] = cur_conf_data[idx];
+        top_data[count * 7 + 2] = conf_fix_a * cur_conf_data[idx] + conf_fix_b;
         for (int k = 0; k < 4; ++k) {
           top_data[count * 7 + 3 + k] = cur_bbox_data[idx * 4 + k];
         }
