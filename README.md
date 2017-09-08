@@ -1,3 +1,7 @@
+# Nexar Challenge 2
+
+This branch is created to tune the SSD framework for the Nexar Challenge 2.
+
 # SSD: Single Shot MultiBox Detector
 
 [![Build Status](https://travis-ci.org/weiliu89/caffe.svg?branch=ssd)](https://travis-ci.org/weiliu89/caffe)
