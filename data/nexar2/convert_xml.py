@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import argparse
 
 HOME = os.environ['HOME']
 DATA_ROOT = os.path.abspath(os.path.join(HOME, 'datasets/nexar'))
@@ -51,6 +52,16 @@ def save_xml(iname, ann):
         xml = annotation2xml(ann)
         f.write(xml)
 
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--single-class', help='Label all the examples (car, bus, etc.) with one class (vehicle)', action='store_true')
+
+args = parser.parse_args()
+
+SINGLE_CLASS = args.single_class
+SINGLE_CLASS_NAME = 'vehicle'
+
+
 image_subdir = 'train'
 anno_subdir = 'annotations'
 
@@ -68,7 +79,8 @@ for dataset in ['trainval', 'test']:
         name_size_file_name = 'test_name_size.txt'
         name_size_file = open(name_size_file_name, 'w')
 
-    max_images = 40000 if dataset == "trainval" else 10000
+    #max_images = 40000 if dataset == "trainval" else 10000
+    max_images = 100 if dataset == "trainval" else 100
     
     for i, iname in enumerate(image_names):
         ann = []
@@ -76,9 +88,9 @@ for dataset in ['trainval', 'test']:
         df = labels_df.loc[iname]
         if df.ndim > 1: # multiple boxes
             for row in df.itertuples():
-                ann.append((int(row.x0), int(row.y0), int(row.x1), int(row.y1), row.label))
+                ann.append((int(row.x0), int(row.y0), int(row.x1), int(row.y1), SINGLE_CLASS_NAME if SINGLE_CLASS else row.label))
         else: # one box
-            ann.append((int(df.x0), int(df.y0), int(df.x1), int(df.y1), df.label))
+            ann.append((int(df.x0), int(df.y0), int(df.x1), int(df.y1), SINGLE_CLASS_NAME if SINGLE_CLASS else df.label))
 
         xmlname = os.path.splitext(iname)[0] + '.xml'
         save_xml(xmlname, ann)
@@ -88,10 +100,11 @@ for dataset in ['trainval', 'test']:
         if dataset == 'test':
             name_size_file.write(os.path.splitext(iname)[0] + " 720 1280\n")
             
-        if i % 1000 == 0:
-            print "Processed {}/{}".format(i, max_images)
+        if i > 0 and i % 1000 == 0:
+            print "Processed {}/{}".format(i + 1, max_images)
 
         if max_images > 0 and i + 1 == max_images:
+            print "Processed {}/{}".format(i + 1, max_images)
             print "Exceeded max images"
             break
 
