@@ -79,8 +79,7 @@ for dataset in ['trainval', 'test']:
         name_size_file_name = 'test_name_size.txt'
         name_size_file = open(name_size_file_name, 'w')
 
-    #max_images = 40000 if dataset == "trainval" else 10000
-    max_images = 100 if dataset == "trainval" else 100
+    max_images = 40000 if dataset == "trainval" else 10000
     
     for i, iname in enumerate(image_names):
         ann = []
