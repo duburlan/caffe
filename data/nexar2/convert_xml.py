@@ -2,6 +2,18 @@ import os
 import pandas as pd
 import argparse
 
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--single-class', help='Label all the examples (car, bus, etc.) with one class (vehicle)', action='store_true')
+parser.add_argument('--num-train', help='Number of training examples', default=40000, type=int)
+parser.add_argument('--num-test', help='Number of test examples', default=10000, type=int)
+
+args = parser.parse_args()
+
+SINGLE_CLASS = args.single_class
+SINGLE_CLASS_NAME = 'vehicle'
+
+
 HOME = os.environ['HOME']
 DATA_ROOT = os.path.abspath(os.path.join(HOME, 'datasets/nexar'))
 IMAGE_PATH = os.path.join(DATA_ROOT, 'train')
@@ -53,15 +65,6 @@ def save_xml(iname, ann):
         f.write(xml)
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--single-class', help='Label all the examples (car, bus, etc.) with one class (vehicle)', action='store_true')
-
-args = parser.parse_args()
-
-SINGLE_CLASS = args.single_class
-SINGLE_CLASS_NAME = 'vehicle'
-
-
 image_subdir = 'train'
 anno_subdir = 'annotations'
 
@@ -79,7 +82,7 @@ for dataset in ['trainval', 'test']:
         name_size_file_name = 'test_name_size.txt'
         name_size_file = open(name_size_file_name, 'w')
 
-    max_images = 40000 if dataset == "trainval" else 10000
+    max_images = args.num_train if dataset == "trainval" else args.num_test
     
     for i, iname in enumerate(image_names):
         ann = []
