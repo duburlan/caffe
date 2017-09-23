@@ -3,23 +3,26 @@ import pandas as pd
 import argparse
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--single-class', help='Label all the examples (car, bus, etc.) with one class (vehicle)', action='store_true')
-parser.add_argument('--num-train', help='Number of training examples', default=40000, type=int)
-parser.add_argument('--num-test', help='Number of test examples', default=10000, type=int)
-
-args = parser.parse_args()
-
-SINGLE_CLASS = args.single_class
-SINGLE_CLASS_NAME = 'vehicle'
-
-
 HOME = os.environ['HOME']
 DATA_ROOT = os.path.abspath(os.path.join(HOME, 'datasets/nexar'))
 IMAGE_PATH = os.path.join(DATA_ROOT, 'train')
 ANNO_PATH = os.path.join(DATA_ROOT, 'annotations')
-TRAINVAL_PATH = os.path.join(DATA_ROOT, 'trainval.csv')
-TEST_PATH = os.path.join(DATA_ROOT, 'test.csv')
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--single-class', help='Label all the examples (car, bus, etc.) with one class (vehicle)', action='store_true')
+parser.add_argument('--train', help='Path to csv file with train image annotations', default='')
+parser.add_argument('--val', help='Path to csv file with val image annotations', default='')
+parser.add_argument('--gen-annos', help='Generate XML annotation files for each image', action='store_true')
+
+args = parser.parse_args()
+
+TRAIN_PATH = args.train
+VAL_PATH = args.val
+
+SINGLE_CLASS = args.single_class
+SINGLE_CLASS_NAME = 'vehicle'
+
 
 from xml.etree import ElementTree
 from xml.etree.ElementTree import Element, SubElement, Comment
@@ -68,50 +71,53 @@ def save_xml(iname, ann):
 image_subdir = 'train'
 anno_subdir = 'annotations'
 
-for dataset in ['trainval', 'test']:
-    print "=== %s ===" % dataset
-    
-    labels_df = pd.read_csv(TRAINVAL_PATH, index_col='image_filename')
+for dataset in ['train', 'val']:
+    input_file = TRAIN_PATH if dataset == 'train' else VAL_PATH
+
+    if not input_file:
+        print '%s file is not set' % dataset
+        continue
+
+    print "Processing %s->%s..." % (input_file, dataset)
+
+    labels_df = pd.read_csv(input_file, index_col='image_filename')
 
     image_names = list(set(labels_df.index.values))
     
     label_file_name = dataset + '.txt'
     label_file = open(label_file_name, 'w')
 
-    if dataset == 'test':
+    if dataset == 'val':
         name_size_file_name = 'test_name_size.txt'
         name_size_file = open(name_size_file_name, 'w')
 
-    max_images = args.num_train if dataset == "trainval" else args.num_test
-    
+    num_images = len(image_names)
+
     for i, iname in enumerate(image_names):
-        ann = []
-
-        df = labels_df.loc[iname]
-        if df.ndim > 1: # multiple boxes
-            for row in df.itertuples():
-                ann.append((int(row.x0), int(row.y0), int(row.x1), int(row.y1), SINGLE_CLASS_NAME if SINGLE_CLASS else row.label))
-        else: # one box
-            ann.append((int(df.x0), int(df.y0), int(df.x1), int(df.y1), SINGLE_CLASS_NAME if SINGLE_CLASS else df.label))
-
         xmlname = os.path.splitext(iname)[0] + '.xml'
-        save_xml(xmlname, ann)
+
+	if args.gen_annos:
+            ann = []
+
+            df = labels_df.loc[iname]
+            if df.ndim > 1: # multiple boxes
+                for row in df.itertuples():
+                    ann.append((int(row.x0), int(row.y0), int(row.x1), int(row.y1), SINGLE_CLASS_NAME if SINGLE_CLASS else row.label))
+            else: # one box
+                ann.append((int(df.x0), int(df.y0), int(df.x1), int(df.y1), SINGLE_CLASS_NAME if SINGLE_CLASS else df.label))
+
+            save_xml(xmlname, ann)
 
         label_file.write(image_subdir + '/' + iname + ' ' + anno_subdir + '/' + xmlname + '\n')
 
-        if dataset == 'test':
+        if dataset == 'val':
             name_size_file.write(os.path.splitext(iname)[0] + " 720 1280\n")
             
         if i > 0 and i % 1000 == 0:
-            print "Processed {}/{}".format(i + 1, max_images)
-
-        if max_images > 0 and i + 1 == max_images:
-            print "Processed {}/{}".format(i + 1, max_images)
-            print "Exceeded max images"
-            break
+            print "Processed {}/{}".format(i + 1, num_images)
 
     label_file.close()
 
-    if dataset == 'test':
+    if dataset == 'val':
         name_size_file.close()
 
