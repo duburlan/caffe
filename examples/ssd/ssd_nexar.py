@@ -79,12 +79,12 @@ resume_training = True
 remove_old_models = False
 
 # The database file for training data. Created by data/nexar2/create_data.sh
-train_data = "examples/nexar2/nexar2_trainval_lmdb"
+train_data = "examples/nexar2/nexar2_train_lmdb"
 # The database file for testing data. Created by data/nexar2/create_data.sh
-test_data = "examples/nexar2/nexar2_test_lmdb"
+test_data = "examples/nexar2/nexar2_val_lmdb"
 # Specify the batch sampler.
-resize_width = 512
-resize_height = 512
+resize_width = 600
+resize_height = 600
 resize = "{}x{}".format(resize_width, resize_height)
 batch_sampler = [
         {
@@ -258,12 +258,12 @@ job_file = "{}/{}.sh".format(job_dir, model_name)
 # Stores the test image names and sizes.
 name_size_file = "data/nexar2/test_name_size.txt"
 # The pretrained model. We use the Fully convolutional reduced (atrous) VGGNet.
-pretrain_model = "models/VGGNet/VGG_ILSVRC_16_layers_fc_reduced.caffemodel"
+pretrain_model = "models/VGGNet/nexar2/pretrained/VGG_nexar2_SSD_512x512_iter_60000.caffemodel"
 # Stores LabelMapItem.
-label_map_file = "data/nexar2/labelmap.prototxt"
+label_map_file = "data/nexar2/labelmap_s.prototxt"
 
 # MultiBoxLoss parameters.
-num_classes = 6
+num_classes = 2
 share_location = True
 background_label_id=0
 train_on_diff_gt = True
@@ -318,7 +318,7 @@ max_sizes = [min_dim * 20 / 100.] + max_sizes
 steps = [8, 16, 32, 64, 100, 300]
 aspect_ratios = [[2], [2, 3], [2, 3], [2, 3], [2], [2]]
 # L2 normalize conv4_3.
-normalizations = [20, -1, -1, -1, -1, -1]
+normalizations = [10, -1, -1, -1, -1, -1]
 # variance used to encode/decode prior bboxes.
 if code_type == P.PriorBox.CENTER_SIZE:
   prior_variance = [0.1, 0.1, 0.2, 0.2]
@@ -329,12 +329,12 @@ clip = False
 
 # Solver parameters.
 # Defining which GPUs to use.
-gpus = "0,1"
+gpus = "0"
 gpulist = gpus.split(",")
 num_gpus = len(gpulist)
 
 # Divide the mini-batch to different GPUs.
-batch_size = 16
+batch_size = 4
 accum_batch_size = 32
 iter_size = accum_batch_size / batch_size
 solver_mode = P.Solver.CPU
@@ -357,22 +357,22 @@ elif normalization_mode == P.Loss.FULL:
 
 # Evaluate on whole test set.
 num_test_image = 5000
-test_batch_size = 8
+test_batch_size = 1
 # Ideally test_batch_size should be divisible by num_test_image,
 # otherwise mAP will be slightly off the true value.
 test_iter = int(math.ceil(float(num_test_image) / test_batch_size))
 
 solver_param = {
     # Train parameters
-    'base_lr': base_lr,
+    'base_lr': 1e-4, #base_lr,
     'weight_decay': 0.0005,
     'lr_policy': "multistep",
-    'stepvalue': [80000, 100000, 120000],
+    'stepvalue': [7000],
     'gamma': 0.1,
     'momentum': 0.9,
     'iter_size': iter_size,
-    'max_iter': 120000,
-    'snapshot': 10000,
+    'max_iter': 10000,
+    'snapshot': 5000,
     'display': 10,
     'average_loss': 10,
     'type': "Adam",
@@ -382,7 +382,7 @@ solver_param = {
     'snapshot_after_train': True,
     # Test parameters
     'test_iter': [test_iter],
-    'test_interval': 10000,
+    'test_interval': 5000,
     'eval_type': "detection",
     'ap_version': "11point",
     'test_initialization': False,
@@ -394,14 +394,14 @@ det_out_param = {
     'share_location': share_location,
     'background_label_id': background_label_id,
     'nms_param': {'nms_threshold': 0.45, 'top_k': 400},
-    'save_output_param': {
-        'output_directory': output_result_dir,
-        'output_name_prefix': "comp4_det_test_",
-        'output_format': "VOC",
-        'label_map_file': label_map_file,
-        'name_size_file': name_size_file,
-        'num_test_image': num_test_image,
-        },
+#   'save_output_param': {
+#       'output_directory': output_result_dir,
+#       'output_name_prefix': "comp4_det_test_",
+#       'output_format': "VOC",
+#       'label_map_file': label_map_file,
+#       'name_size_file': name_size_file,
+#       'num_test_image': num_test_image,
+#       },
     'keep_top_k': 200,
     'confidence_threshold': 0.01,
     'code_type': code_type,
@@ -411,7 +411,7 @@ det_out_param = {
 det_eval_param = {
     'num_classes': num_classes,
     'background_label_id': background_label_id,
-    'overlap_threshold': 0.5,
+    'overlap_threshold': 0.75,
     'evaluate_difficult_gt': False,
     'name_size_file': name_size_file,
     }
